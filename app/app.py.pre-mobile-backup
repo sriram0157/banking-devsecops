@@ -1,0 +1,210 @@
+
+import os
+import pymysql
+from decimal import Decimal, InvalidOperation
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+
+app = Flask(__name__)
+
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-secret-change-before-deployment")
+
+
+def get_db():
+    return pymysql.connect(
+        host=os.environ.get("DB_HOST", "127.0.0.1"),
+        port=int(os.environ.get("DB_PORT", "3306")),
+        user=os.environ.get("DB_USER", "securebank_app"),
+        password=os.environ["DB_PASSWORD"],
+        database=os.environ.get("DB_NAME", "securebank"),
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=False
+    )
+
+
+def get_dashboard_data():
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT account_number, name, balance FROM accounts ORDER BY account_number"
+            )
+            rows = cursor.fetchall()
+            accounts = {
+                row["account_number"]: {
+                    "name": row["name"],
+                    "balance": row["balance"]
+                }
+                for row in rows
+            }
+
+            cursor.execute("""
+                SELECT sender, receiver, amount, status
+                FROM transactions
+                ORDER BY id DESC
+            """)
+            transactions = cursor.fetchall()
+
+            return accounts, transactions
+    finally:
+        connection.close()
+
+
+@app.route("/")
+def home():
+    accounts, transactions = get_dashboard_data()
+    return render_template(
+        "index.html",
+        accounts=accounts,
+        transactions=transactions
+    )
+
+
+@app.route("/add-account", methods=["POST"])
+def add_account():
+    name = request.form.get("name", "").strip()
+    account_number = request.form.get("account_number", "").strip()
+
+    try:
+        deposit = Decimal(request.form.get("deposit", "0"))
+    except (InvalidOperation, TypeError):
+        flash("Please enter a valid initial deposit.")
+        return redirect(url_for("home"))
+
+    if not name or not account_number:
+        flash("Customer name and account number are required.")
+        return redirect(url_for("home"))
+
+    if len(name) > 100 or len(account_number) > 20:
+        flash("Customer name or account number is too long.")
+        return redirect(url_for("home"))
+
+    if not deposit.is_finite() or deposit < 0:
+        flash("Initial deposit must be a valid non-negative amount.")
+        return redirect(url_for("home"))
+
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO accounts (account_number, name, balance) VALUES (%s, %s, %s)",
+                (account_number, name, deposit)
+            )
+        connection.commit()
+        flash(f"Account created successfully for {name}!")
+    except pymysql.err.IntegrityError:
+        connection.rollback()
+        flash("This account number already exists.")
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Account creation failed")
+        flash("Unable to create account. Please try again.")
+    finally:
+        connection.close()
+
+    return redirect(url_for("home"))
+
+
+@app.route("/transfer", methods=["POST"])
+def transfer():
+    sender = request.form.get("sender", "").strip()
+    receiver = request.form.get("receiver", "").strip()
+
+    try:
+        amount = Decimal(request.form.get("amount", "0"))
+    except (InvalidOperation, TypeError):
+        flash("Please enter a valid amount.")
+        return redirect(url_for("home"))
+
+    if not sender or not receiver:
+        flash("Please select both accounts.")
+        return redirect(url_for("home"))
+
+    if sender == receiver:
+        flash("Sender and receiver must be different.")
+        return redirect(url_for("home"))
+
+    if not amount.is_finite() or amount <= 0:
+        flash("Transfer amount must be greater than zero.")
+        return redirect(url_for("home"))
+
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT account_number, balance FROM accounts "
+                "WHERE account_number IN (%s, %s) FOR UPDATE",
+                (sender, receiver)
+            )
+            rows = cursor.fetchall()
+            accounts = {row["account_number"]: row for row in rows}
+
+            if sender not in accounts or receiver not in accounts:
+                connection.rollback()
+                flash("Invalid account number.")
+                return redirect(url_for("home"))
+
+            if accounts[sender]["balance"] < amount:
+                connection.rollback()
+                flash("Insufficient balance.")
+                return redirect(url_for("home"))
+
+            cursor.execute(
+                "UPDATE accounts SET balance = balance - %s WHERE account_number = %s",
+                (amount, sender)
+            )
+            cursor.execute(
+                "UPDATE accounts SET balance = balance + %s WHERE account_number = %s",
+                (amount, receiver)
+            )
+            cursor.execute(
+                "INSERT INTO transactions (sender, receiver, amount, status) "
+                "VALUES (%s, %s, %s, %s)",
+                (sender, receiver, amount, "SUCCESS")
+            )
+
+        connection.commit()
+        flash("Transfer completed successfully!")
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Transfer failed")
+        flash("Transfer failed. Please try again.")
+    finally:
+        connection.close()
+
+    return redirect(url_for("home"))
+
+
+@app.route("/health")
+def health():
+    try:
+        connection = get_db()
+        connection.close()
+        return jsonify({
+            "status": "UP",
+            "application": "Banking DevSecOps",
+            "database": "CONNECTED",
+            "version": "2.0"
+        }), 200
+    except Exception:
+        app.logger.exception("Database health check failed")
+        return jsonify({
+            "status": "DOWN",
+            "database": "DISCONNECTED"
+        }), 503
+
+
+@app.route("/api/accounts")
+def get_accounts():
+    accounts, _ = get_dashboard_data()
+    return jsonify(accounts)
+
+
+@app.route("/api/transactions")
+def get_transactions():
+    _, transactions = get_dashboard_data()
+    return jsonify(transactions)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)

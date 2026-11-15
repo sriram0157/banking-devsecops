@@ -1,0 +1,124 @@
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank | Digital Banking</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #101b3d, #155e75);
+            color: #172033;
+        }
+        .container {
+            width: 100%;
+            max-width: 430px;
+            padding: 32px;
+            border-radius: 20px;
+            background: white;
+            box-shadow: 0 20px 60px #0005;
+        }
+        .brand { text-align: center; margin-bottom: 25px; }
+        .brand h1 { margin: 0; color: #155e75; }
+        .brand p { color: #64748b; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 24px; }
+        .tabs button {
+            flex: 1; padding: 12px; border: 0;
+            border-radius: 9px; cursor: pointer;
+            background: #e8eef5; font-weight: bold;
+        }
+        .tabs button.active { background: #155e75; color: white; }
+        label { display: block; margin: 14px 0 7px; font-weight: bold; }
+        input {
+            width: 100%; padding: 13px;
+            border: 1px solid #cbd5e1; border-radius: 9px;
+            font-size: 15px;
+        }
+        .submit {
+            width: 100%; margin-top: 22px; padding: 14px;
+            border: 0; border-radius: 9px;
+            background: #155e75; color: white;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .submit:hover { background: #0e485b; }
+        .hidden { display: none; }
+        .message {
+            padding: 10px; margin-bottom: 12px;
+            border-radius: 8px; background: #f1f5f9;
+        }
+        .notice {
+            margin-top: 20px; font-size: 12px;
+            text-align: center; color: #64748b;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="brand">
+        <h1>SecureBank</h1>
+        <p>Your digital banking experience</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% for message in messages %}
+        <div class="message">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="tabs">
+        <button id="loginTab" class="active" onclick="showForm('login')">Login</button>
+        <button id="registerTab" onclick="showForm('register')">Register</button>
+    </div>
+
+    <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+        <label>Mobile Number</label>
+        <input type="tel" name="mobile_number" pattern="[0-9]{10,15}"
+               minlength="10" maxlength="15" required placeholder="Enter mobile number">
+
+        <label>Password</label>
+        <input type="password" name="password" required minlength="8"
+               placeholder="Enter password">
+
+        <button class="submit" type="submit">Login Securely</button>
+    </form>
+
+    <form id="registerForm" class="hidden" method="POST"
+          action="{{ url_for('register') }}">
+        <label>Full Name</label>
+        <input type="text" name="full_name" maxlength="100"
+               required placeholder="Enter full name">
+
+        <label>Mobile Number</label>
+        <input type="tel" name="mobile_number" pattern="[0-9]{10,15}"
+               minlength="10" maxlength="15" required placeholder="Enter mobile number">
+
+        <label>Create Password</label>
+        <input type="password" name="password" minlength="8"
+               required placeholder="Minimum 8 characters">
+
+        <button class="submit" type="submit">Create Account</button>
+    </form>
+
+    <p class="notice">
+        Demo banking application. No real money or banking transactions.
+    </p>
+</div>
+
+<script>
+function showForm(type) {
+    const login = type === 'login';
+    document.getElementById('loginForm').classList.toggle('hidden', !login);
+    document.getElementById('registerForm').classList.toggle('hidden', login);
+    document.getElementById('loginTab').classList.toggle('active', login);
+    document.getElementById('registerTab').classList.toggle('active', !login);
+}
+</script>
+</body>
+</html>

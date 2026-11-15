@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank | Dashboard</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #172033;
+        }
+
+        header {
+            background: #10254b;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 { margin: 0; }
+        header a { color: white; text-decoration: none; }
+
+        main {
+            max-width: 850px;
+            margin: auto;
+            padding: 22px;
+        }
+
+        .welcome { margin-bottom: 22px; }
+
+        .balance {
+            background: linear-gradient(120deg, #155e75, #123b70);
+            color: white;
+            padding: 26px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px #0002;
+        }
+
+        .balance p { color: #d5eaf1; margin-bottom: 8px; }
+        .balance h1 { font-size: 32px; margin: 8px 0; }
+        .account { color: #d5eaf1; font-size: 13px; }
+
+        .section { margin-top: 25px; }
+        .section h3 { margin-bottom: 14px; }
+
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .action {
+            background: white;
+            padding: 18px 12px;
+            border-radius: 13px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .action span {
+            font-size: 25px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .action a {
+            color: #172033;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .panel {
+            background: white;
+            padding: 22px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            margin-top: 18px;
+        }
+
+        .panel label {
+            display: block;
+            margin: 14px 0 7px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .panel input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .submit {
+            width: 100%;
+            padding: 13px;
+            margin-top: 18px;
+            border: 0;
+            border-radius: 9px;
+            background: #155e75;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .submit:hover { background: #164e63; }
+
+        .notice {
+            background: #fff7ed;
+            color: #9a3412;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-top: 24px;
+        }
+
+        .message {
+            background: #e0f2fe;
+            color: #075985;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .empty {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            line-height: 1.6;
+        }
+
+        .empty label {
+            display: block;
+            margin: 16px 0 7px;
+            font-weight: bold;
+        }
+
+        .empty input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        @media (min-width: 650px) {
+            .actions { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>SecureBank</h2>
+    <a href="{{ url_for('logout') }}">Logout ↗</a>
+</header>
+
+<main>
+
+    <div class="welcome">
+        <h2>Welcome, {{ full_name }}!</h2>
+        <p>Your digital banking dashboard</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div class="message">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% if account %}
+
+        <section class="balance">
+            <p>Available demo balance</p>
+            <h1>₹{{ "%.2f"|format(account.balance) }}</h1>
+            <div class="account">
+                Account: {{ account.account_number }}
+                {% if account.upi_id %}
+                    <br>UPI ID: {{ account.upi_id }}
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="section">
+            <h3>Banking Services</h3>
+
+            <div class="actions">
+                <div class="action">
+                    <span>↗</span>
+                    <a href="#send-money">Send Money</a>
+                </div>
+
+                <div class="action">
+                    <span>↙</span>
+                    <a href="#receive-money">Receive Money</a>
+                </div>
+
+                <div class="action">
+                    <span>▦</span>
+                    <a href="#receive-money">My UPI ID</a>
+                </div>
+
+                <div class="action">
+                    <span>◷</span>
+                    <a href="{{ url_for('transaction_history') }}">
+                        Transactions
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section panel" id="send-money">
+            <h3>Send Demo Money</h3>
+            <p>Transfer simulated money to another SecureBank user.</p>
+
+            <form method="POST" action="{{ url_for('send_money') }}">
+
+                <label>Recipient Mobile Number or UPI ID</label>
+                <input
+                    type="text"
+                    name="recipient"
+                    placeholder="Enter mobile number or UPI ID"
+                    required>
+
+                <label>Amount (₹)</label>
+                <input
+                    type="number"
+                    name="amount"
+                    min="0.01"
+                    max="10000000"
+                    step="0.01"
+                    placeholder="Enter amount"
+                    required>
+
+                <label>Six-digit Demo Transaction PIN</label>
+                <input
+                    type="password"
+                    name="pin"
+                    pattern="[0-9]{6}"
+                    minlength="6"
+                    maxlength="6"
+                    inputmode="numeric"
+                    placeholder="Enter demo PIN"
+                    required>
+
+                <button type="submit" class="submit">
+                    Send Demo Money
+                </button>
+            </form>
+        </section>
+
+        <section class="section panel" id="receive-money">
+            <h3>Receive Money</h3>
+            <p>Share your SecureBank UPI ID with another demo user.</p>
+            <strong>{{ account.upi_id }}</strong>
+        </section>
+
+        <section class="section panel">
+            <h3>Transaction History</h3>
+            <p>Your saved transaction records.</p>
+            <a href="{{ url_for('transaction_history') }}">
+                View All Transactions →
+            </a>
+        </section>
+
+    {% else %}
+
+        <section class="empty">
+            <h3>Welcome to SecureBank!</h3>
+            <p>Create your demo bank account to access banking services.</p>
+
+            <form method="POST" action="{{ url_for('add_account') }}">
+
+                <label>Demo Account Number</label>
+                <input
+                    type="text"
+                    name="account_number"
+                    pattern="[0-9]{8,18}"
+                    minlength="8"
+                    maxlength="18"
+                    placeholder="Enter 8–18 digit demo number"
+                    required>
+
+                <label>Demo Opening Balance (₹)</label>
+                <input
+                    type="number"
+                    name="opening_balance"
+                    min="0"
+                    max="10000000"
+                    step="0.01"
+                    value="0"
+                    required>
+
+                <label>Create 6-digit Demo Transaction PIN</label>
+                <input
+                    type="password"
+                    name="pin"
+                    pattern="[0-9]{6}"
+                    minlength="6"
+                    maxlength="6"
+                    inputmode="numeric"
+                    placeholder="Create demo PIN"
+                    required>
+
+                <button type="submit" class="submit">
+                    Create Demo Bank Account
+                </button>
+            </form>
+        </section>
+
+    {% endif %}
+
+    <div class="notice">
+        <strong>Demo application:</strong>
+        All balances and payments are simulated.
+        No real banking transactions take place.
+    </div>
+
+</main>
+</body>
+</html>

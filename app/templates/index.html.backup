@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank | Online Banking</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        header {
+            background: #12345a;
+            color: white;
+            padding: 22px 8%;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 35px auto;
+            padding: 0 18px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+
+        .balance {
+            font-size: 27px;
+            font-weight: bold;
+            color: #087b56;
+        }
+
+        input, select, button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 12px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #12345a;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #087b56;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .message {
+            background: #dcfce7;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>SecureBank</h1>
+    <p>Online Banking Demo Platform</p>
+</header>
+
+<main>
+
+    <h2>Account Dashboard</h2>
+
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div class="message">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <h2>Customer Accounts</h2>
+
+    <div class="cards">
+        {% for number, account in accounts.items() %}
+        <div class="card">
+            <h3>{{ account.name }}</h3>
+            <p>Account Number: {{ number }}</p>
+            <p>Available Balance</p>
+            <div class="balance">
+                ₹{{ "%.2f"|format(account.balance) }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h2>Add New Customer</h2>
+
+        <form action="/add-account" method="POST">
+
+            <label>Customer Name</label>
+            <input
+                type="text"
+                name="name"
+                placeholder="Enter customer name"
+                maxlength="80"
+                required
+            >
+
+            <label>Account Number</label>
+            <input
+                type="text"
+                name="account_number"
+                placeholder="Enter unique account number"
+                maxlength="20"
+                required
+            >
+
+            <label>Initial Deposit (INR)</label>
+            <input
+                type="number"
+                name="deposit"
+                min="0"
+                step="0.01"
+                placeholder="Enter initial deposit"
+                required
+            >
+
+            <button type="submit">Add Customer</button>
+
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Transfer Money</h2>
+
+        <form action="/transfer" method="POST">
+
+            <label>From Account</label>
+            <select name="sender" required>
+                {% for number, account in accounts.items() %}
+                <option value="{{ number }}">
+                    {{ account.name }} ({{ number }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <label>To Account</label>
+            <select name="receiver" required>
+                {% for number, account in accounts.items() %}
+                <option value="{{ number }}">
+                    {{ account.name }} ({{ number }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <label>Amount (INR)</label>
+            <input
+                type="number"
+                name="amount"
+                min="0.01"
+                step="0.01"
+                placeholder="Enter amount"
+                required
+            >
+
+            <button type="submit">Transfer Money</button>
+
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Transaction History</h2>
+
+        <table>
+            <tr>
+                <th>Sender</th>
+                <th>Receiver</th>
+                <th>Amount</th>
+                <th>Status</th>
+            </tr>
+
+            {% for transaction in transactions %}
+            <tr>
+                <td>{{ transaction.sender }}</td>
+                <td>{{ transaction.receiver }}</td>
+                <td>₹{{ "%.2f"|format(transaction.amount) }}</td>
+                <td>{{ transaction.status }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No transactions yet.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+</main>
+
+</body>
+</html>
