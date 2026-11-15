@@ -1,14 +1,14 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-alpine3.24
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+# Upgrade vulnerable Kerberos package
+RUN apk update && apk upgrade --no-cache
 
-# Upgrade pip inside the Docker image
-RUN python -m pip install --no-cache-dir --upgrade pip
 COPY app/requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools \
+    && python -m pip install --no-cache-dir -r requirements.txt
 
 COPY app/ .
 
