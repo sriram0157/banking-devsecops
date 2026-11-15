@@ -21,7 +21,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat '"C:\\Users\\SRIRAM\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe" --host npipe:////./pipe/dockerDesktopLinuxEngine build -t securebank:%BUILD_NUMBER% .'
+                bat '"C:\\Users\\SRIRAM\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe" --host npipe:////./pipe/dockerDesktopLinuxEngine build --pull --no-cache -t securebank:%BUILD_NUMBER% .'
             }
         }
 
