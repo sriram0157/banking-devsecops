@@ -1,0 +1,25 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Security scan reports
+trivy-report.json
+trivy-report.txt
+
+# Environment variables and secrets
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+venv/
